@@ -49,6 +49,7 @@ struct Settings {
     unique: bool,
     check: bool,
     ignore_case: bool,
+    ignore_spaces: bool,
     compare_fns: Vec<fn(&String, &String) -> Ordering>,
 }
 
@@ -63,6 +64,7 @@ impl Default for Settings {
             unique: false,
             check: false,
             ignore_case: false,
+            ignore_spaces: false,
             compare_fns: Vec::new(),
         }
     }
@@ -157,6 +159,11 @@ pub fn uumain(args: Vec<String>) -> i32 {
         "fold lower case to upper case characters",
     );
     opts.optflag(
+        "x",
+        "ignore-spaces",
+        "fold spaces into oblivion",
+    );
+    opts.optflag(
         "n",
         "numeric-sort",
         "compare according to string numerical value",
@@ -240,6 +247,7 @@ With no FILE, or when FILE is -, read standard input.",
     settings.unique = matches.opt_present("unique");
     settings.check = matches.opt_present("check");
     settings.ignore_case = matches.opt_present("ignore-case");
+    settings.ignore_spaces = matches.opt_present("ignore-spaces");
 
     let mut files = matches.free;
     if files.is_empty() {
@@ -362,9 +370,17 @@ fn compare_by(a: &String, b: &String, settings: &Settings) -> Ordering {
     } else {
         (a, b)
     };
+    let (a_nospace, b_nospace): (String, String);
+    let (x, y) = if settings.ignore_spaces {
+        a_nospace = a.replace(" ", "");
+        b_nospace = b.replace(" ", "");
+        (&a_nospace, &b_nospace)
+    } else {
+        (a, b)
+    };
 
     for compare_fn in &settings.compare_fns {
-        let cmp = compare_fn(a, b);
+        let cmp = compare_fn(x, y);
         if cmp != Ordering::Equal {
             if settings.reverse {
                 return cmp.reverse();
